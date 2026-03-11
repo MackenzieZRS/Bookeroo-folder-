@@ -190,7 +190,7 @@ const css = `
   }
   .btn-sage:hover { background: var(--sage-light); box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
-  .page-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 28px 32px; }
+  .page-content { flex: 1; overflow-y: auto; padding: 28px 32px; }
 
   /* CARDS */
   .card {
@@ -550,7 +550,7 @@ const DATA = {
     { id: 1015, name: "Danial Gourlie", initials: "DG", activity: "Buggy & Jet Ski", date: "Mar 3", time: "14:00–18:00", status: "confirmed", amount: 129.00, tickets: 1, hue: 270 },
     { id: 1001, name: "Jackson Moore", initials: "JM", activity: "Buggy + Jet Ski + Aqua Karts", date: "Mar 9", time: "14:00–18:00", status: "confirmed", amount: 608.40, tickets: 4, hue: 160 },
     { id: 993, name: "Jonathan Rivera", initials: "JR", activity: "Aqua Splash Pack", date: "Feb 25", time: "09:00–13:00", status: "confirmed", amount: 198.00, tickets: 2, hue: 45 },
-    { id: 992, name: "Sarah Chen", initials: "SC", activity: "Buggy & Jet Ski", date: "Feb 26", time: "14:00–18:00", status: "cancelled", cancelReason: "Customer Cancelled", amount: 387.00, tickets: 3, hue: 300 },
+    { id: 992, name: "Sarah Chen", initials: "SC", activity: "Buggy & Jet Ski", date: "Feb 26", time: "14:00–18:00", status: "cancelled", amount: 387.00, tickets: 3, hue: 300 },
   ],
   activities: [
     { id: 1, name: "Aqua Splash Pack", status: "active", bookings: 12, revenue: 2376, schedules: 1, stripe: "#4A7C6F" },
@@ -1107,20 +1107,18 @@ function StripeWidget() {
 
 function Dashboard() {
   const [activeMetricIdx, setActiveMetricIdx] = useState(null);
-  const [showNewBooking, setShowNewBooking] = useState(false);
   const actRevMax = Math.max(...DATA.activities.map(a => a.revenue));
   const actColors = ["#4A7C6F", "#3B6FA0", "#C4772A", "#7B5EA7", "#B85C5C", "#9E9892"];
 
   return (
     <div>
       {activeMetricIdx !== null && <StatModal metrics={DATA.stats} initialIndex={activeMetricIdx} onClose={() => setActiveMetricIdx(null)} />}
-      {showNewBooking && <NewBookingModal onClose={() => setShowNewBooking(false)} />}
       <div className="page-header">
         <div>
           <div className="page-title">Good morning, Pierre</div>
           <div className="page-sub">Jet Ski Punta Cana · Sunday, March 8, 2026</div>
         </div>
-        <button className="btn-sage" onClick={() => setShowNewBooking(true)}><I n="plus" s={14} /> New Booking</button>
+        <button className="btn-sage"><I n="plus" s={14} /> New Booking</button>
       </div>
 
       {/* Stats */}
@@ -1329,80 +1327,22 @@ function Dashboard() {
 function Bookings() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [bookings, setBookings] = useState(() => DATA.bookings.map(b => ({ ...b })));
-  const [editingId, setEditingId] = useState(null);
-  const [pendingStatus, setPendingStatus] = useState(null);
-  const [pendingReason, setPendingReason] = useState("");
-  const [detailId, setDetailId] = useState(null);
-  const [showNewBooking, setShowNewBooking] = useState(false);
   const tabs = ["all", "confirmed", "pending", "cancelled"];
-
-  const filtered = bookings.filter(b =>
+  const filtered = DATA.bookings.filter(b =>
     (filter === "all" || b.status === filter) &&
     (b.name.toLowerCase().includes(search.toLowerCase()) || b.activity.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const startEdit = (b) => { setEditingId(b.id); setPendingStatus(b.status); setPendingReason(b.cancelReason || ""); };
-  const commitEdit = (id) => {
-    setBookings(bs => bs.map(b => b.id === id ? { ...b, status: pendingStatus, cancelReason: pendingStatus === "cancelled" ? pendingReason : "" } : b));
-    setEditingId(null);
-  };
-
-  const detailBooking = bookings.find(b => b.id === detailId);
-
   return (
     <div>
-      {/* Detail Modal */}
-      {detailBooking && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDetailId(null)}>
-          <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 480, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(26,23,20,0.2)" }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>#{detailBooking.id}</div>
-                <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>{detailBooking.activity} · {detailBooking.date}</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Badge status={detailBooking.status} />
-                <button onClick={() => setDetailId(null)} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 17 }}>×</button>
-              </div>
-            </div>
-            <div style={{ overflowY: "auto", padding: "18px 22px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div className="avatar" style={{ background: `hsl(${detailBooking.hue},45%,88%)`, color: `hsl(${detailBooking.hue},50%,35%)` }}>{detailBooking.initials}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{detailBooking.name}</div>
-              </div>
-              {[
-                { label: "Activity", value: detailBooking.activity },
-                { label: "Date & Time", value: `${detailBooking.date} · ${detailBooking.time}` },
-                { label: "Tickets", value: detailBooking.tickets },
-                { label: "Amount", value: `$${detailBooking.amount.toFixed(2)}` },
-              ].map(row => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{row.value}</span>
-                </div>
-              ))}
-              {detailBooking.status === "cancelled" && detailBooking.cancelReason && (
-                <div style={{ marginTop: 14, background: "var(--rose-bg)", border: "1px solid rgba(184,92,92,0.15)", borderRadius: 9, padding: "10px 14px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--rose)", marginBottom: 3 }}>Cancellation Reason</div>
-                  <div style={{ fontSize: 13, color: "var(--rose)" }}>{detailBooking.cancelReason}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showNewBooking && <NewBookingModal onClose={() => setShowNewBooking(false)} />}
-
       <div className="page-header">
         <div>
           <div className="page-title">Bookings</div>
-          <div className="page-sub">{bookings.length} total bookings</div>
+          <div className="page-sub">{DATA.bookings.length} total bookings</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-          <button className="btn-primary" onClick={() => setShowNewBooking(true)}><I n="plus" s={14} /> Add Booking</button>
+          <button className="btn-primary"><I n="plus" s={14} /> Add Booking</button>
         </div>
       </div>
 
@@ -1427,7 +1367,7 @@ function Bookings() {
             <tbody>
               {filtered.map(b => (
                 <tr key={b.id}>
-                  <td><span className="booking-id" style={{ cursor: "pointer" }} onClick={() => setDetailId(b.id)}>#{b.id}</span></td>
+                  <td><span className="booking-id">#{b.id}</span></td>
                   <td>
                     <div className="customer-cell">
                       <div className="avatar" style={{ background: `hsl(${b.hue},45%,88%)`, color: `hsl(${b.hue},50%,35%)` }}>{b.initials}</div>
@@ -1438,38 +1378,11 @@ function Bookings() {
                   <td><div className="date-cell"><div className="date">{b.date}</div><div className="time">{b.time}</div></div></td>
                   <td><span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{b.tickets}</span></td>
                   <td><div className="amount-cell">${b.amount.toFixed(2)}</div></td>
-                  <td>
-                    {editingId === b.id ? (
-                      <div style={{ minWidth: 155 }}>
-                        <select value={pendingStatus} onChange={e => { setPendingStatus(e.target.value); if (e.target.value !== "cancelled") setPendingReason(""); }}
-                          style={{ background: "white", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", fontSize: 12, fontFamily: "var(--font-body)", marginBottom: 4, width: "100%" }}>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="pending">Pending</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                        {pendingStatus === "cancelled" && (
-                          <select value={pendingReason} onChange={e => setPendingReason(e.target.value)}
-                            style={{ background: "white", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", fontSize: 11, fontFamily: "var(--font-body)", marginBottom: 4, width: "100%", color: pendingReason ? "var(--rose)" : "var(--ink-4)" }}>
-                            <option value="">Select reason…</option>
-                            {CANCEL_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                          </select>
-                        )}
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => commitEdit(b.id)} style={{ flex: 1, background: "var(--ink)", color: "white", border: "none", borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-body)" }}>Save</button>
-                          <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-body)" }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <Badge status={b.status} />
-                        {b.status === "cancelled" && b.cancelReason && <div style={{ fontSize: 10.5, color: "var(--rose)", marginTop: 3 }}>{b.cancelReason}</div>}
-                      </div>
-                    )}
-                  </td>
+                  <td><Badge status={b.status} /></td>
                   <td>
                     <div className="actions-cell">
-                      <div className="tbl-btn" style={{ cursor: "pointer" }} onClick={() => setDetailId(b.id)}><I n="eye" s={13} /></div>
-                      <div className="tbl-btn" style={{ cursor: "pointer" }} onClick={() => startEdit(b)}><I n="edit" s={13} /></div>
+                      <div className="tbl-btn"><I n="eye" s={13} /></div>
+                      <div className="tbl-btn"><I n="edit" s={13} /></div>
                       <div className="tbl-btn"><I n="more" s={13} /></div>
                     </div>
                   </td>
@@ -1490,260 +1403,19 @@ function Bookings() {
   );
 }
 
-// ─── NEW BOOKING MODAL (SHARED PLACEHOLDER) ──────────────────────────────────
-function NewBookingModal({ onClose }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 800, display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.15s ease" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 440, boxShadow: "0 24px 64px rgba(26,23,20,0.22)", overflow: "hidden", animation: "slideUp 0.18s cubic-bezier(.4,0,.2,1)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "22px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>New Booking</div>
-            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 3 }}>Jet Ski Punta Cana</div>
-          </div>
-          <button onClick={onClose} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 18, lineHeight: 1 }}>×</button>
-        </div>
-        <div style={{ padding: "36px 24px 40px", textAlign: "center" }}>
-          <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--sage-bg)", border: "1px solid rgba(74,124,111,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <I n="plus" s={22} />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 8 }}>Booking Placeholder</div>
-          <div style={{ fontSize: 13, color: "var(--ink-4)", lineHeight: 1.6 }}>The full booking creation flow will appear here.</div>
-        </div>
-        <div style={{ padding: "0 24px 22px", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} className="btn-secondary" style={{ fontSize: 13 }}>Close</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── ACTIVITY SCHEDULE MODAL ──────────────────────────────────────────────────
-function ActivityScheduleModal({ activity, onClose }) {
-  const MONTHS_S = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const DAYS_S = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const ANCHOR = new Date(2026, 2, 9); // Mon Mar 9
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [editTime, setEditTime] = useState({ start: "09:00", end: "11:00" });
-
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(ANCHOR);
-    d.setDate(d.getDate() + weekOffset * 7 + i);
-    return d;
-  });
-
-  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  const isToday = d => fmt(d) === fmt(new Date(2026, 2, 9));
-
-  const sessionsOnDay = (d) => CAL_SESSIONS.filter(s => s.date === fmt(d));
-  const isThisActivity = s => s.activity.toLowerCase().includes(activity.name.split(" ")[0].toLowerCase()) || activity.name.toLowerCase().includes(s.activity.split(" ")[0].toLowerCase());
-
-  const rangeLabel = `${weekDays[0].toLocaleDateString("en-US",{month:"short",day:"numeric"})} – ${weekDays[6].toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}`;
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 800, display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.15s ease" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 720, maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(26,23,20,0.22)", animation: "slideUp 0.18s cubic-bezier(.4,0,.2,1)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 14, height: 36, borderRadius: 4, background: activity.stripe, flexShrink: 0 }} />
-            <div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>{activity.name}</div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 2 }}>Schedule overview · adjust date & time</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 18, lineHeight: 1 }}>×</button>
-        </div>
-
-        {/* Week nav */}
-        <div style={{ padding: "12px 24px 10px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <button onClick={() => setWeekOffset(w => w-1)} className="btn-secondary" style={{ padding: "5px 9px" }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <button onClick={() => setWeekOffset(0)} className="btn-secondary" style={{ fontSize: 11.5, padding: "5px 11px" }}>Today</button>
-          <button onClick={() => setWeekOffset(w => w+1)} className="btn-secondary" style={{ padding: "5px 9px" }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <span style={{ fontSize: 12, color: "var(--ink-3)", marginLeft: 4 }}>{rangeLabel}</span>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: activity.stripe }} /><span style={{ fontSize: 11, color: "var(--ink-3)" }}>{activity.name}</span></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "var(--border-strong)" }} /><span style={{ fontSize: 11, color: "var(--ink-3)" }}>Other</span></div>
-          </div>
-        </div>
-
-        {/* Calendar grid */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {/* Day headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", background: "var(--cream)", borderBottom: "1px solid var(--border)" }}>
-            {weekDays.map((d, i) => {
-              const today = isToday(d);
-              return (
-                <div key={i} style={{ padding: "8px 10px 6px", borderRight: i < 6 ? "1px solid var(--border)" : "none", textAlign: "center", background: today ? "rgba(59,111,160,0.06)" : "transparent" }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", color: today ? "var(--sky)" : "var(--ink-4)", marginBottom: 3 }}>{DAYS_S[i]}</div>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: today ? "var(--sky)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", color: today ? "white" : "var(--ink-2)" }}>{d.getDate()}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {/* Session rows */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", minHeight: 180 }}>
-            {weekDays.map((d, i) => {
-              const sessions = sessionsOnDay(d);
-              return (
-                <div key={i} onClick={() => setSelectedDate(fmt(d))}
-                  style={{ padding: "7px 6px", borderRight: i < 6 ? "1px solid var(--border)" : "none", minHeight: 140, cursor: "pointer", background: selectedDate === fmt(d) ? "rgba(74,124,111,0.04)" : "transparent", transition: "background 0.1s" }}>
-                  {sessions.map(s => {
-                    const isThis = isThisActivity(s);
-                    return (
-                      <div key={s.id} style={{
-                        borderLeft: `3px solid ${isThis ? activity.stripe : "var(--border-strong)"}`,
-                        background: isThis ? `${activity.stripe}12` : "var(--cream)",
-                        border: `1px solid ${isThis ? `${activity.stripe}40` : "var(--border)"}`,
-                        borderLeftWidth: 3,
-                        borderRadius: 4, padding: "3px 5px", marginBottom: 4,
-                        opacity: isThis ? 1 : 0.45,
-                      }}>
-                        <div style={{ fontSize: 9.5, fontWeight: isThis ? 700 : 400, color: isThis ? activity.stripe : "var(--ink-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.activity.split(" ")[0]}</div>
-                        <div style={{ fontSize: 8.5, color: "var(--ink-5)", fontFamily: "var(--font-mono)" }}>{s.time.split("–")[0]}</div>
-                      </div>
-                    );
-                  })}
-                  {sessions.length === 0 && <div style={{ fontSize: 10, color: "var(--ink-5)", textAlign: "center", marginTop: 18 }}>—</div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Date/time adjustment */}
-        <div style={{ padding: "14px 24px 18px", borderTop: "1px solid var(--border)", background: "var(--cream)", flexShrink: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-3)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.07em" }}>Adjust Schedule</div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>Date</div>
-              <input type="date" value={selectedDate || fmt(weekDays[0])} onChange={e => setSelectedDate(e.target.value)}
-                style={{ background: "white", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, fontFamily: "var(--font-body)", color: "var(--ink)", cursor: "pointer" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>Start time</div>
-              <input type="time" value={editTime.start} onChange={e => setEditTime(t => ({ ...t, start: e.target.value }))}
-                style={{ background: "white", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, fontFamily: "var(--font-body)", color: "var(--ink)" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>End time</div>
-              <input type="time" value={editTime.end} onChange={e => setEditTime(t => ({ ...t, end: e.target.value }))}
-                style={{ background: "white", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, fontFamily: "var(--font-body)", color: "var(--ink)" }} />
-            </div>
-            <div style={{ marginLeft: "auto", paddingTop: 20 }}>
-              <button onClick={onClose} className="btn-primary" style={{ fontSize: 13, padding: "8px 22px" }}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── ACTIVITY EDIT MODAL ──────────────────────────────────────────────────────
-function ActivityEditModal({ activity, onSave, onClose }) {
-  const [draft, setDraft] = useState({ ...activity });
-  const STRIPE_OPTIONS = ["#4A7C6F","#3B6FA0","#C4772A","#7B5EA7","#B85C5C","#9E9892","#3D8FA0","#A07A3D"];
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 800, display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.15s ease" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 480, boxShadow: "0 24px 64px rgba(26,23,20,0.22)", overflow: "hidden", animation: "slideUp 0.18s cubic-bezier(.4,0,.2,1)" }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 12, height: 30, borderRadius: 3, background: draft.stripe }} />
-            <div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600, color: "var(--ink)" }}>Edit Activity</div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 2 }}>{activity.name}</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 18, lineHeight: 1 }}>×</button>
-        </div>
-
-        {/* Fields */}
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Name */}
-          <div>
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-3)", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Activity Name</label>
-            <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-              style={{ width: "100%", background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 9, padding: "9px 12px", fontSize: 13.5, fontFamily: "var(--font-body)", color: "var(--ink)", boxSizing: "border-box" }} />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-3)", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Status</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["active","inactive"].map(s => (
-                <button key={s} onClick={() => setDraft(d => ({ ...d, status: s }))}
-                  style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: `1.5px solid ${draft.status === s ? (s === "active" ? "var(--sage)" : "var(--rose)") : "var(--border)"}`, background: draft.status === s ? (s === "active" ? "var(--sage-bg)" : "var(--rose-bg)") : "white", color: draft.status === s ? (s === "active" ? "var(--sage)" : "var(--rose)") : "var(--ink-4)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "capitalize" }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Schedules */}
-          <div>
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-3)", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Schedules</label>
-            <input type="number" min="0" max="99" value={draft.schedules} onChange={e => setDraft(d => ({ ...d, schedules: parseInt(e.target.value) || 0 }))}
-              style={{ width: "100%", background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 9, padding: "9px 12px", fontSize: 13.5, fontFamily: "var(--font-body)", color: "var(--ink)", boxSizing: "border-box" }} />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-3)", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Color</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {STRIPE_OPTIONS.map(c => (
-                <div key={c} onClick={() => setDraft(d => ({ ...d, stripe: c }))}
-                  style={{ width: 28, height: 28, borderRadius: 7, background: c, cursor: "pointer", border: `2.5px solid ${draft.stripe === c ? "var(--ink)" : "transparent"}`, boxSizing: "border-box", transition: "border 0.1s" }} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: "12px 24px 20px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onClose} className="btn-secondary" style={{ fontSize: 13 }}>Cancel</button>
-          <button onClick={() => onSave(draft)} className="btn-primary" style={{ fontSize: 13, padding: "8px 22px" }}>Confirm</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Activities() {
-  const [activities, setActivities] = useState(DATA.activities.map(a => ({ ...a })));
-  const [editActivity, setEditActivity] = useState(null);
-  const [scheduleActivity, setScheduleActivity] = useState(null);
-  const [showNewBooking, setShowNewBooking] = useState(false);
-
-  const saveEdit = (draft) => {
-    setActivities(prev => prev.map(a => a.id === draft.id ? draft : a));
-    setEditActivity(null);
-  };
-
   return (
     <div>
-      {showNewBooking && <NewBookingModal onClose={() => setShowNewBooking(false)} />}
-      {editActivity && <ActivityEditModal activity={editActivity} onSave={saveEdit} onClose={() => setEditActivity(null)} />}
-      {scheduleActivity && <ActivityScheduleModal activity={scheduleActivity} onClose={() => setScheduleActivity(null)} />}
-
       <div className="page-header">
         <div>
           <div className="page-title">Activities</div>
-          <div className="page-sub">{activities.filter(a => a.status === "active").length} active · {activities.filter(a => a.status === "inactive").length} inactive</div>
+          <div className="page-sub">5 active · 1 inactive</div>
         </div>
         <button className="btn-primary"><I n="plus" s={14} /> New Activity</button>
       </div>
 
       <div className="activity-grid">
-        {activities.map(a => (
+        {DATA.activities.map(a => (
           <div key={a.id} className="activity-card">
             <div className="activity-stripe" style={{ background: a.stripe }} />
             <div className="activity-body">
@@ -1763,8 +1435,8 @@ function Activities() {
                 ))}
               </div>
               <div className="activity-actions">
-                <button onClick={() => setScheduleActivity(a)} className="btn-secondary" style={{ flex: 1, justifyContent: "center", padding: "7px 0" }}><I n="cal" s={13} /> Schedules</button>
-                <button onClick={() => setEditActivity(a)} style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 6, background: `${a.stripe}15`, border: `1px solid ${a.stripe}40`, color: a.stripe, borderRadius: 9, padding: "7px 0", fontSize: 12.5, fontWeight: 500, cursor: "pointer", fontFamily: "var(--font-body)" }}><I n="edit" s={13} /> Edit</button>
+                <button className="btn-secondary" style={{ flex: 1, justifyContent: "center", padding: "7px 0" }}><I n="cal" s={13} /> Schedules</button>
+                <button style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 6, background: `${a.stripe}15`, border: `1px solid ${a.stripe}40`, color: a.stripe, borderRadius: 9, padding: "7px 0", fontSize: 12.5, fontWeight: 500, cursor: "pointer", fontFamily: "var(--font-body)" }}><I n="edit" s={13} /> Edit</button>
               </div>
             </div>
           </div>
@@ -1774,383 +1446,45 @@ function Activities() {
   );
 }
 
-// ─── CALENDAR PAGE (NEW) ─────────────────────────────────────────────────────
-const CAL_SESSIONS = [
-  { id: "cs1", date: "2026-03-09", time: "09:00–11:00", activity: "Guided Jetski Tour", customers: [{ name: "Jackson Moore", initials: "JM", hue: 160 }, { name: "Tremishea Brady", initials: "TB", hue: 320 }], tickets: 2, staffIds: [1, 2], waiverStatus: { "Jackson Moore": "signed", "Tremishea Brady": "signed" }, balanceStatus: { "Jackson Moore": "ok", "Tremishea Brady": "ok" }, status: "confirmed", notes: "" },
-  { id: "cs2", date: "2026-03-09", time: "14:00–16:00", activity: "Open Water Rental", customers: [{ name: "Jose Fuentes", initials: "JF", hue: 60 }], tickets: 1, staffIds: [3], waiverStatus: { "Jose Fuentes": "signed" }, balanceStatus: { "Jose Fuentes": "ok" }, status: "confirmed", notes: "" },
-  { id: "cs3", date: "2026-03-10", time: "09:00–11:00", activity: "Sunset Jetski Tour", customers: [{ name: "Andy Pena", initials: "AP", hue: 200 }, { name: "Danial Gourlie", initials: "DG", hue: 270 }], tickets: 2, staffIds: [], waiverStatus: { "Andy Pena": "missing", "Danial Gourlie": "signed" }, balanceStatus: { "Andy Pena": "due", "Danial Gourlie": "ok" }, status: "confirmed", notes: "Andy's waiver outstanding" },
-  { id: "cs4", date: "2026-03-11", time: "10:00–12:00", activity: "Guided Jetski Tour", customers: [{ name: "Zakaria Mohamad", initials: "ZM", hue: 140 }], tickets: 2, staffIds: [1], waiverStatus: { "Zakaria Mohamad": "signed" }, balanceStatus: { "Zakaria Mohamad": "ok" }, status: "confirmed", notes: "" },
-  { id: "cs5", date: "2026-03-11", time: "14:00–18:00", activity: "Open Water Rental", customers: [{ name: "Jaeda Ray", initials: "JR", hue: 25 }, { name: "Ce'Asia Williams", initials: "CW", hue: 190 }], tickets: 2, staffIds: [3], waiverStatus: { "Jaeda Ray": "missing", "Ce'Asia Williams": "signed" }, balanceStatus: { "Jaeda Ray": "due", "Ce'Asia Williams": "ok" }, status: "pending", notes: "" },
-  { id: "cs6", date: "2026-03-12", time: "09:00–11:00", activity: "Guided Jetski Tour", customers: [{ name: "Jonathan Rivera", initials: "JR", hue: 45 }], tickets: 1, staffIds: [1, 2], waiverStatus: { "Jonathan Rivera": "signed" }, balanceStatus: { "Jonathan Rivera": "ok" }, status: "confirmed", notes: "" },
-  { id: "cs7", date: "2026-03-13", time: "09:00–11:00", activity: "Sunset Jetski Tour", customers: [{ name: "Jackson Moore", initials: "JM", hue: 160 }, { name: "Jose Fuentes", initials: "JF", hue: 60 }, { name: "Andy Pena", initials: "AP", hue: 200 }], tickets: 3, staffIds: [5], waiverStatus: { "Jackson Moore": "signed", "Jose Fuentes": "signed", "Andy Pena": "missing" }, balanceStatus: { "Jackson Moore": "ok", "Jose Fuentes": "ok", "Andy Pena": "due" }, status: "confirmed", notes: "" },
-  { id: "cs8", date: "2026-03-13", time: "14:00–18:00", activity: "Guided Jetski Tour", customers: [{ name: "Ce'Asia Williams", initials: "CW", hue: 190 }, { name: "Tremishea Brady", initials: "TB", hue: 320 }], tickets: 2, staffIds: [], waiverStatus: { "Ce'Asia Williams": "signed", "Tremishea Brady": "signed" }, balanceStatus: { "Ce'Asia Williams": "ok", "Tremishea Brady": "ok" }, status: "pending", notes: "Staff not yet assigned" },
-  { id: "cs9", date: "2026-03-14", time: "11:00–13:00", activity: "Open Water Rental", customers: [{ name: "Danial Gourlie", initials: "DG", hue: 270 }], tickets: 1, staffIds: [3], waiverStatus: { "Danial Gourlie": "signed" }, balanceStatus: { "Danial Gourlie": "ok" }, status: "confirmed", notes: "" },
-  { id: "cs10", date: "2026-03-15", time: "09:00–11:00", activity: "Guided Jetski Tour", customers: [{ name: "Zakaria Mohamad", initials: "ZM", hue: 140 }, { name: "Jaeda Ray", initials: "JR", hue: 25 }], tickets: 2, staffIds: [2], waiverStatus: { "Zakaria Mohamad": "signed", "Jaeda Ray": "missing" }, balanceStatus: { "Zakaria Mohamad": "ok", "Jaeda Ray": "due" }, status: "confirmed", notes: "" },
-  { id: "cs11", date: "2026-03-16", time: "14:00–16:00", activity: "Sunset Jetski Tour", customers: [{ name: "Sarah Chen", initials: "SC", hue: 300 }], tickets: 1, staffIds: [5], waiverStatus: { "Sarah Chen": "signed" }, balanceStatus: { "Sarah Chen": "ok" }, status: "cancelled", cancelReason: "Customer Cancelled", notes: "" },
-];
-
-const CAL_ACTIVITY_COLORS = {
-  "Guided Jetski Tour": { border: "#3B6FA0", bg: "#EEF3F9", text: "#3B6FA0" },
-  "Sunset Jetski Tour": { border: "#C4772A", bg: "#FBF0E4", text: "#C4772A" },
-  "Open Water Rental":  { border: "#4A7C6F", bg: "#EBF3F0", text: "#4A7C6F" },
-};
-
-const CAL_STAFF_REQ = {
-  "Guided Jetski Tour": ["Instructor"],
-  "Sunset Jetski Tour": ["Guide"],
-  "Open Water Rental":  ["Rental Operator"],
-};
-
 function CalendarPage() {
-  const [view, setView] = useState("week");
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [filterActivity, setFilterActivity] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const ANCHOR = new Date(2026, 2, 9); // March 9 2026
-
-  const getWeekStart = (offset) => {
-    const d = new Date(ANCHOR);
-    d.setDate(d.getDate() + offset * 7);
-    const day = d.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
-    d.setDate(d.getDate() + diff);
-    return d;
-  };
-
-  const weekStart = getWeekStart(weekOffset);
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    return d;
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const startOffset = 0;
+  const totalDays = 31;
+  const cells = Array.from({ length: 35 }, (_, i) => {
+    const day = i - startOffset + 1;
+    return { day, valid: day >= 1 && day <= totalDays };
   });
-  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  const toDateStr = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-
-  const isToday = (d) => toDateStr(d) === "2026-03-09";
-
-  const getStaffingStatus = (session) => {
-    const required = CAL_STAFF_REQ[session.activity] || [];
-    if (required.length === 0) return "covered";
-    const assignedStaff = DATA.staff.filter(s => session.staffIds.includes(s.id));
-    const assignedRoles = assignedStaff.map(s => s.role);
-    const missing = required.filter(r => !assignedRoles.includes(r));
-    if (missing.length === 0) return "covered";
-    if (session.staffIds.length > 0) return "partial";
-    return "unstaffed";
-  };
-
-  const filteredSessions = CAL_SESSIONS.filter(s => {
-    if (filterActivity !== "all" && s.activity !== filterActivity) return false;
-    if (filterStatus !== "all" && s.status !== filterStatus) return false;
-    return true;
-  });
-
-  const sessionsForDay = (dateStr) => filteredSessions.filter(s => s.date === dateStr);
-
-  const hasIssues = (session) => {
-    const waiverMissing = Object.values(session.waiverStatus).some(v => v === "missing");
-    const balanceDue = Object.values(session.balanceStatus).some(v => v === "due");
-    const staffing = getStaffingStatus(session);
-    return waiverMissing || balanceDue || staffing !== "covered";
-  };
-
-  const monthLabel = () => {
-    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-    const start = weekDays[0], end = weekDays[6];
-    if (start.getMonth() === end.getMonth()) return `${months[start.getMonth()]} ${start.getFullYear()}`;
-    return `${months[start.getMonth()]} – ${months[end.getMonth()]} ${end.getFullYear()}`;
-  };
-
-  const StaffingBadge = ({ status }) => {
-    if (status === "covered") return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "var(--sage-bg)", color: "var(--sage)", border: "1px solid rgba(74,124,111,0.2)", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>
-        <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Covered
-      </span>
-    );
-    if (status === "partial") return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#FFF8EE", color: "#C4772A", border: "1px solid rgba(196,119,42,0.2)", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>⚠ Partial</span>
-    );
-    return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "var(--rose-bg)", color: "var(--rose)", border: "1px solid rgba(184,92,92,0.2)", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>✕ Unstaffed</span>
-    );
-  };
-
-  const SessionBlock = ({ session }) => {
-    const col = CAL_ACTIVITY_COLORS[session.activity] || { border: "#9E9892", bg: "var(--cream)", text: "var(--ink-3)" };
-    const staffing = getStaffingStatus(session);
-    const issues = hasIssues(session);
-    const assignedStaff = DATA.staff.filter(s => session.staffIds.includes(s.id));
-    const isCancelled = session.status === "cancelled";
-
-    return (
-      <div
-        onClick={() => setSelectedSession(session)}
-        style={{
-          background: isCancelled ? "var(--cream)" : "white",
-          border: `1px solid var(--border)`,
-          borderLeft: `3px solid ${isCancelled ? "var(--border-strong)" : col.border}`,
-          borderRadius: 7, padding: "6px 8px", marginBottom: 5, cursor: "pointer",
-          opacity: isCancelled ? 0.6 : 1,
-          transition: "box-shadow 0.15s",
-        }}
-        onMouseEnter={e => e.currentTarget.style.boxShadow = "var(--shadow-md)"}
-        onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4, marginBottom: 3 }}>
-          <span style={{ fontSize: 9.5, fontWeight: 700, color: isCancelled ? "var(--ink-4)" : "var(--ink-2)", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{session.activity}</span>
-          {issues && !isCancelled && <span style={{ fontSize: 8, color: "var(--amber)", flexShrink: 0 }}>⚠</span>}
-        </div>
-        <div style={{ fontSize: 9, color: "var(--ink-4)", fontFamily: "var(--font-mono)", marginBottom: 4 }}>{session.time}</div>
-        {!isCancelled && <StaffingBadge status={staffing} />}
-        {isCancelled && <span style={{ fontSize: 9, color: "var(--rose)", fontWeight: 600 }}>Cancelled</span>}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 5 }}>
-          {session.customers.slice(0, 3).map(c => (
-            <div key={c.name} title={c.name} style={{ width: 18, height: 18, borderRadius: 5, background: `hsl(${c.hue},40%,88%)`, color: `hsl(${c.hue},45%,35%)`, fontSize: 7.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{c.initials}</div>
-          ))}
-          {session.customers.length > 3 && <div style={{ width: 18, height: 18, borderRadius: 5, background: "var(--cream-darker)", color: "var(--ink-4)", fontSize: 7.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>+{session.customers.length - 3}</div>}
-        </div>
-      </div>
-    );
-  };
-
-  // Detail Modal
-  const DetailModal = ({ session }) => {
-    const navTo = useNav();
-    const staffing = getStaffingStatus(session);
-    const assignedStaff = DATA.staff.filter(s => session.staffIds.includes(s.id));
-
-    return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setSelectedSession(null)}>
-        <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 520, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(26,23,20,0.2)" }} onClick={e => e.stopPropagation()}>
-          {/* Header */}
-          <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius-lg) var(--radius-lg) 0 0" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)", marginBottom: 3 }}>{session.activity}</div>
-                <div style={{ fontSize: 12, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>{session.date} · {session.time}</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <StaffingBadge status={staffing} />
-                <Badge status={session.status} />
-                <button onClick={() => setSelectedSession(null)} style={{ background: "rgba(26,23,20,0.08)", border: "none", borderRadius: 7, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 16 }}>×</button>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ overflowY: "auto", padding: "18px 22px" }}>
-            {/* Customers */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)", marginBottom: 8 }}>Customers · {session.tickets} ticket{session.tickets !== 1 ? "s" : ""}</div>
-              {session.customers.map(c => {
-                const wStatus = session.waiverStatus[c.name];
-                const bStatus = session.balanceStatus[c.name];
-                return (
-                  <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, background: `hsl(${c.hue},40%,88%)`, color: `hsl(${c.hue},45%,35%)`, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{c.initials}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{c.name}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 5 }}>
-                      <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: wStatus === "signed" ? "var(--sage-bg)" : "var(--rose-bg)", color: wStatus === "signed" ? "var(--sage)" : "var(--rose)", border: `1px solid ${wStatus === "signed" ? "rgba(74,124,111,0.2)" : "rgba(184,92,92,0.2)"}` }}>
-                        {wStatus === "signed" ? "Waiver ✓" : "Waiver ✗"}
-                      </span>
-                      {bStatus === "due" && <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600, background: "var(--amber-bg)", color: "var(--amber)", border: "1px solid rgba(196,119,42,0.2)" }}>Balance Due</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Staff */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)", marginBottom: 8 }}>Assigned Staff</div>
-              {assignedStaff.length === 0
-                ? <div style={{ fontSize: 12, color: "var(--ink-4)", padding: "6px 0" }}>No staff assigned</div>
-                : assignedStaff.map(s => (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 6, background: `hsl(${s.hue},38%,88%)`, color: `hsl(${s.hue},38%,34%)`, fontSize: 8.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.name.split(" ").map(n => n[0]).join("")}</div>
-                    <div style={{ fontSize: 12, color: "var(--ink)" }}>{s.name}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--ink-4)" }}>· {s.role}</div>
-                  </div>
-                ))
-              }
-              <button
-                onClick={() => { setSelectedSession(null); navTo("staff"); }}
-                style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 5, background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 500, color: "var(--sage)", cursor: "pointer", fontFamily: "var(--font-body)" }}
-                onMouseEnter={e => e.currentTarget.style.background = "var(--sage-bg)"}
-                onMouseLeave={e => e.currentTarget.style.background = "var(--cream)"}
-              >
-                <I n="person" s={13} /> Manage Staff →
-              </button>
-            </div>
-
-            {/* Cancellation reason */}
-            {session.status === "cancelled" && session.cancelReason && (
-              <div style={{ marginBottom: 16, background: "var(--rose-bg)", border: "1px solid rgba(184,92,92,0.15)", borderRadius: 9, padding: "10px 14px" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--rose)", marginBottom: 3 }}>Cancellation Reason</div>
-                <div style={{ fontSize: 13, color: "var(--rose)" }}>{session.cancelReason}</div>
-              </div>
-            )}
-
-            {/* Notes */}
-            {session.notes && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)", marginBottom: 5 }}>Notes</div>
-                <div style={{ fontSize: 12.5, color: "var(--ink-3)", background: "var(--cream)", borderRadius: 8, padding: "8px 12px" }}>{session.notes}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const bookingDays = { 3: 2, 6: 3, 7: 5, 9: 4, 13: 6, 15: 1, 17: 3, 20: 2, 23: 2, 26: 2 };
 
   return (
     <div>
-      {selectedSession && <DetailModal session={selectedSession} />}
-
       <div className="page-header">
         <div>
           <div className="page-title">Calendar</div>
-          <div className="page-sub">{monthLabel()}</div>
+          <div className="page-sub">March 2026</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div className="filter-tabs">
-            <button className={`filter-tab ${view === "week" ? "active" : ""}`} onClick={() => setView("week")}>Week</button>
-            <button className={`filter-tab ${view === "month" ? "active" : ""}`} onClick={() => setView("month")}>Month</button>
-          </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-secondary">← Prev</button>
+          <button className="btn-secondary">Today</button>
+          <button className="btn-secondary">Next →</button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
-        <select value={filterActivity} onChange={e => setFilterActivity(e.target.value)} style={{ background: "white", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--ink-2)", fontFamily: "var(--font-body)", cursor: "pointer" }}>
-          <option value="all">All Activities</option>
-          <option value="Guided Jetski Tour">Guided Jetski Tour</option>
-          <option value="Sunset Jetski Tour">Sunset Jetski Tour</option>
-          <option value="Open Water Rental">Open Water Rental</option>
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: "white", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--ink-2)", fontFamily: "var(--font-body)", cursor: "pointer" }}>
-          <option value="all">All Statuses</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="pending">Pending</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-
-      {/* Activity color legend */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        {Object.entries(CAL_ACTIVITY_COLORS).map(([name, col]) => (
-          <div key={name} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: col.border, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 500 }}>{name}</span>
+      <div className="calendar-grid">
+        {days.map(d => <div key={d} className="cal-header">{d}</div>)}
+        {cells.map((c, i) => (
+          <div key={i} className={`cal-day ${!c.valid ? "other-month" : ""} ${c.day === 8 ? "today" : ""}`}>
+            {c.valid && (
+              <>
+                <div className="cal-day-num">{c.day}</div>
+                {bookingDays[c.day] && (
+                  <div className="cal-booking-dot">{bookingDays[c.day]} booking{bookingDays[c.day] > 1 ? "s" : ""}</div>
+                )}
+              </>
+            )}
           </div>
         ))}
       </div>
-
-      {/* Week nav */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setWeekOffset(w => w - 1)} className="btn-secondary" style={{ padding: "5px 9px" }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button onClick={() => setWeekOffset(0)} className="btn-secondary" style={{ fontSize: 11.5, padding: "5px 11px" }}>Today</button>
-        <button onClick={() => setWeekOffset(w => w + 1)} className="btn-secondary" style={{ padding: "5px 9px" }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <span style={{ fontSize: 13, color: "var(--ink-3)", marginLeft: 4 }}>
-          {weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} – {weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-        </span>
-      </div>
-
-      {/* ── WEEK VIEW ── */}
-      {view === "week" && (
-        <div style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)", width: "100%" }}>
-          {/* Day headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", background: "var(--cream)", borderBottom: "2px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0", overflow: "hidden" }}>
-            {weekDays.map((d, i) => {
-              const today = isToday(d);
-              return (
-                <div key={i} style={{ padding: "10px 10px 8px", borderRight: i < 6 ? "1px solid var(--border)" : "none", textAlign: "center", background: today ? "rgba(59,111,160,0.06)" : "transparent" }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: today ? "var(--sky)" : "var(--ink-4)", marginBottom: 4 }}>{DAYS[i]}</div>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: today ? "var(--sky)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: today ? "white" : "var(--ink-2)" }}>{d.getDate()}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {/* Sessions grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", alignItems: "start" }}>
-            {weekDays.map((d, i) => {
-              const dateStr = toDateStr(d);
-              const daySessions = sessionsForDay(dateStr);
-              const today = isToday(d);
-              return (
-                <div key={i} style={{ borderRight: i < 6 ? "1px solid var(--border)" : "none", padding: "10px 7px", minHeight: 120, background: today ? "rgba(59,111,160,0.025)" : i % 2 === 1 ? "rgba(26,23,20,0.01)" : "transparent" }}>
-                  {daySessions.length === 0
-                    ? <div style={{ fontSize: 10, color: "var(--ink-5)", textAlign: "center", paddingTop: 20 }}>—</div>
-                    : daySessions.map(s => <SessionBlock key={s.id} session={s} />)
-                  }
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── MONTH VIEW ── */}
-      {view === "month" && (() => {
-        const year = 2026, month = 2; // March
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = 31;
-        const offset = firstDay === 0 ? 6 : firstDay - 1;
-        const cells = Array.from({ length: Math.ceil((offset + daysInMonth) / 7) * 7 }, (_, i) => {
-          const day = i - offset + 1;
-          return { day, valid: day >= 1 && day <= daysInMonth };
-        });
-        return (
-          <div style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", background: "var(--cream)", borderBottom: "1px solid var(--border)" }}>
-              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
-                <div key={d} style={{ padding: "9px 0", textAlign: "center", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-4)" }}>{d}</div>
-              ))}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))" }}>
-              {cells.map((c, i) => {
-                const dateStr = c.valid ? `2026-03-${String(c.day).padStart(2,"0")}` : null;
-                const daySessions = dateStr ? sessionsForDay(dateStr) : [];
-                const isCurrentDay = c.day === 9;
-                return (
-                  <div key={i} style={{ borderRight: i % 7 < 6 ? "1px solid var(--border)" : "none", borderBottom: "1px solid var(--border)", padding: "6px 6px", minHeight: 90, background: !c.valid ? "var(--cream)" : isCurrentDay ? "rgba(59,111,160,0.04)" : "transparent", opacity: !c.valid ? 0.4 : 1 }}>
-                    {c.valid && (
-                      <>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: isCurrentDay ? "var(--sky)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "var(--font-mono)", color: isCurrentDay ? "white" : "var(--ink-2)" }}>{c.day}</span>
-                        </div>
-                        {daySessions.map(s => {
-                            const chipCol = CAL_ACTIVITY_COLORS[s.activity] || { border: "#9E9892", bg: "var(--cream)", text: "var(--ink-3)" };
-                            return (
-                            <div key={s.id} onClick={() => setSelectedSession(s)} style={{ background: s.status === "cancelled" ? "var(--cream)" : chipCol.bg, border: "1px solid var(--border)", borderLeft: `2px solid ${s.status === "cancelled" ? "var(--border-strong)" : chipCol.border}`, borderRadius: 4, padding: "2px 5px", marginBottom: 3, cursor: "pointer", fontSize: 9.5, fontWeight: 600, color: s.status === "cancelled" ? "var(--ink-4)" : chipCol.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {s.time.split("–")[0]} {s.activity.split(" ")[0]}
-                            </div>
-                          );
-                        })}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
@@ -2357,6 +1691,7 @@ const StaffDropdown = ({ sessionId, assigned, onAssign, unavailableIds }) => {
 
 // ─── SESSION CARD ─────────────────────────────────────────────────────────────
 const SessionCard = ({ session, onAssign, onUnassign, unavailableIds }) => {
+  const col = ACTIVITY_COLORS[session.activity] || ACTIVITY_COLORS["Guided Jetski Tour"];
   const requiredRoles = STAFF_REQUIREMENTS[session.activity] || [];
   const assignedStaff = DATA.staff.filter(s => session.assigned.includes(s.id));
   const assignedRoles = assignedStaff.map(s => s.role);
@@ -2364,7 +1699,7 @@ const SessionCard = ({ session, onAssign, onUnassign, unavailableIds }) => {
   const isCovered = missingRoles.length === 0;
 
   return (
-    <div style={{ background: "white", border: `1px solid var(--border)`, borderLeft: `3px solid ${ACTIVITY_COLORS[session.activity]?.border || "var(--border-strong)"}`, borderRadius: 8, boxShadow: "var(--shadow-sm)", marginBottom: 7 }}>
+    <div style={{ background: "white", border: `1px solid var(--border)`, borderLeft: `3px solid ${col.border}`, borderRadius: 8, boxShadow: "var(--shadow-sm)", marginBottom: 7 }}>
       <div style={{ padding: "8px 10px" }}>
 
         {/* Staffing readiness badge */}
@@ -2460,46 +1795,6 @@ const WeekJumpPopover = ({ onJumpToWeek, onClose }) => {
   );
 };
 
-// ─── STAFF AVAILABILITY HELPERS ──────────────────────────────────────────────
-const DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const DAY_IDX = { Mon:0, Tue:1, Wed:2, Thu:3, Fri:4, Sat:5, Sun:6 };
-
-// Parse an avail entry like "Mon–Fri" or "Mon–Thu" or "Mon" into a set of day indices
-function parseAvailEntry(entry) {
-  const active = new Array(7).fill(false);
-  if (!entry || entry.hours === "Off") return active;
-  const parts = entry.days.split("–");
-  if (parts.length === 1) {
-    const idx = DAY_IDX[parts[0].trim()];
-    if (idx !== undefined) active[idx] = true;
-  } else {
-    const start = DAY_IDX[parts[0].trim()];
-    const end = DAY_IDX[parts[1].trim()];
-    if (start !== undefined && end !== undefined) {
-      if (start <= end) { for (let i = start; i <= end; i++) active[i] = true; }
-      else { for (let i = start; i < 7; i++) active[i] = true; for (let i = 0; i <= end; i++) active[i] = true; }
-    }
-  }
-  return active;
-}
-
-// Compute 7-bool array [Mon..Sun] from a staff member's avail array
-function staffDayAvail(staff) {
-  const result = new Array(7).fill(false);
-  (staff.avail || []).forEach(e => {
-    const days = parseAvailEntry(e);
-    days.forEach((v, i) => { if (v) result[i] = true; });
-  });
-  return result;
-}
-
-// Is staff available on a JS Date (0=Sun,1=Mon,…,6=Sat)?
-function isStaffAvailOnDate(staff, date) {
-  const jsDay = date.getDay(); // 0=Sun
-  const monIdx = jsDay === 0 ? 6 : jsDay - 1; // convert to Mon=0
-  return staffDayAvail(staff)[monIdx];
-}
-
 // ─── STAFF PAGE ───────────────────────────────────────────────────────────────
 function Staff() {
   const ANCHOR = new Date(2026, 2, 9);
@@ -2509,34 +1804,13 @@ function Staff() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef(null);
 
-  // Staff avail overrides (weekly bool[7] per staff, keyed by id)
-  const [staffAvailMap, setStaffAvailMap] = useState(() =>
-    Object.fromEntries(DATA.staff.map(s => [s.id, staffDayAvail(s)]))
+  // Staff availability state: id → true (available) | false (unavailable)
+  const [availability, setAvailability] = useState(() =>
+    Object.fromEntries(DATA.staff.map(s => [s.id, true]))
   );
-  // Edit modal state
-  const [editAvailId, setEditAvailId] = useState(null);
-  const [editAvailDraft, setEditAvailDraft] = useState(null);
+  const unavailableIds = DATA.staff.filter(s => !availability[s.id]).map(s => s.id);
 
-  const openAvailEdit = (staffId) => {
-    setEditAvailId(staffId);
-    setEditAvailDraft([...staffAvailMap[staffId]]);
-  };
-  const saveAvailEdit = () => {
-    setStaffAvailMap(prev => ({ ...prev, [editAvailId]: editAvailDraft }));
-    setEditAvailId(null);
-  };
-
-  // Derive unavailableIds for the current day in view
-  const currentViewDate = (() => {
-    const d = new Date(ANCHOR);
-    d.setDate(d.getDate() + weekOffset * 7 + (view === "day" ? activeDayIdx : 0));
-    return d;
-  })();
-
-  // unavailableIds: staff unavailable on current view date (for assignment dropdowns)
-  const unavailableIds = DATA.staff.filter(s => !staffAvailMap[s.id]?.[
-    currentViewDate.getDay() === 0 ? 6 : currentViewDate.getDay() - 1
-  ]).map(s => s.id);
+  const toggleAvail = (id) => setAvailability(prev => ({ ...prev, [id]: !prev[id] }));
 
   // Sessions
   const seedSessions = () => {
@@ -2683,8 +1957,16 @@ function Staff() {
           <button onClick={() => { setWeekOffset(0); setActiveDayIdx(0); }} className="btn-secondary" style={{ fontSize: 11.5, padding: "5px 11px" }}>Today</button>
         </div>
 
-        {/* View toggle */}
+        {/* Legend + view toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {Object.entries(ACTIVITY_COLORS).map(([name, col]) => (
+              <div key={name} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: col.border, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{name}</span>
+              </div>
+            ))}
+          </div>
           <div className="filter-tabs">
             <button className={`filter-tab ${view === "day" ? "active" : ""}`} onClick={() => setView("day")}>Day</button>
             <button className={`filter-tab ${view === "week" ? "active" : ""}`} onClick={() => setView("week")}>Week</button>
@@ -2694,9 +1976,9 @@ function Staff() {
 
       {/* ── WEEK VIEW ── */}
       {view === "week" && (
-        <div style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)", marginBottom: 24, width: "100%" }}>
+        <div style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)", overflow: "hidden", marginBottom: 24 }}>
           {/* Day headers */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", background: "var(--cream)", borderBottom: "2px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", background: "var(--cream)", borderBottom: "2px solid var(--border)" }}>
             {weekDays.map((d, i) => {
               const today = isToday(d);
               return (
@@ -2711,7 +1993,7 @@ function Staff() {
           </div>
 
           {/* Session columns */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", alignItems: "start" }}>
             {Array.from({ length: 7 }, (_, i) => {
               const daySessions = getSessionsFor(weekOffset, i);
               const today = isToday(weekDays[i]);
@@ -2771,75 +2053,29 @@ function Staff() {
         </div>
       )}
 
-      {/* ── AVAILABILITY EDIT MODAL ── */}
-      {editAvailId !== null && (() => {
-        const s = DATA.staff.find(x => x.id === editAvailId);
-        return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setEditAvailId(null)}>
-            <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 360, boxShadow: "0 20px 60px rgba(26,23,20,0.2)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
-              <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>Edit Availability — {s.name}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 2 }}>{s.role}</div>
-                </div>
-                <button onClick={() => setEditAvailId(null)} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", fontSize: 17, color: "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-              </div>
-              <div style={{ padding: "20px 22px" }}>
-                <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginBottom: 12 }}>Click a day to toggle availability</div>
-                <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                  {DAY_NAMES.map((d, i) => (
-                    <div key={i} onClick={() => setEditAvailDraft(prev => { const n=[...prev]; n[i]=!n[i]; return n; })}
-                      style={{ width: 38, height: 46, borderRadius: 9, border: `1.5px solid ${editAvailDraft[i] ? "var(--sage)" : "var(--border)"}`, background: editAvailDraft[i] ? "var(--sage-bg)" : "var(--cream-dark)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, transition: "all 0.12s" }}>
-                      <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: editAvailDraft[i] ? "var(--sage)" : "var(--ink-5)" }}>{d}</span>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: editAvailDraft[i] ? "var(--sage)" : "var(--border)" }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ padding: "12px 22px 18px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditAvailId(null)} className="btn-secondary" style={{ fontSize: 12 }}>Cancel</button>
-                <button onClick={saveAvailEdit} className="btn-primary" style={{ fontSize: 12 }}>Save Availability</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
       {/* ── STAFF MINI CARDS ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 500, color: "var(--ink)" }}>Staff Overview</div>
-          <div style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{DATA.staff.filter(s => {
-            const monIdx = currentViewDate.getDay() === 0 ? 6 : currentViewDate.getDay() - 1;
-            return staffAvailMap[s.id]?.[monIdx];
-          }).length} of {totalStaff} available today</div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-4)" }}>{DATA.staff.filter(s => availability[s.id]).length} of {totalStaff} available</div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
           {DATA.staff.map(s => {
-            const days = staffAvailMap[s.id] || new Array(7).fill(false);
-            const todayMonIdx = currentViewDate.getDay() === 0 ? 6 : currentViewDate.getDay() - 1;
-            const isAvailToday = days[todayMonIdx];
+            const isAvail = availability[s.id];
             return (
-              <div key={s.id} style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "10px 12px", boxShadow: "var(--shadow-sm)", opacity: isAvailToday ? 1 : 0.6, transition: "opacity 0.2s" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `hsl(${s.hue},38%,88%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, color: `hsl(${s.hue},38%,34%)`, flexShrink: 0 }}>
-                    {s.name.split(" ").map(n => n[0]).join("")}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name.split(" ")[0]}</div>
-                    <div style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.role}</div>
-                  </div>
+              <div key={s.id} style={{ background: "white", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "10px 12px", boxShadow: "var(--shadow-sm)", display: "flex", alignItems: "center", gap: 9, opacity: isAvail ? 1 : 0.6, transition: "opacity 0.2s" }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: `hsl(${s.hue},38%,88%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10.5, fontWeight: 700, color: `hsl(${s.hue},38%,34%)`, flexShrink: 0 }}>
+                  {s.name.split(" ").map(n => n[0]).join("")}
                 </div>
-                {/* Weekly availability dots — clickable to open edit */}
-                <div onClick={() => openAvailEdit(s.id)}
-                  title="Edit availability"
-                  style={{ cursor: "pointer", display: "flex", gap: 2, justifyContent: "center" }}>
-                  {DAY_NAMES.map((d, i) => (
-                    <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", color: i === todayMonIdx ? (days[i] ? "var(--sage)" : "var(--rose)") : "var(--ink-5)", letterSpacing: "0.03em" }}>{d[0]}</span>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: days[i] ? (i === todayMonIdx ? "var(--sage)" : "rgba(74,124,111,0.5)") : "var(--border)", border: i === todayMonIdx ? `1.5px solid ${days[i] ? "var(--sage)" : "var(--rose)"}` : "none" }} />
-                    </div>
-                  ))}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name.split(" ")[0]}</div>
+                  <div style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.role}</div>
+                </div>
+                {/* Toggle */}
+                <div onClick={() => toggleAvail(s.id)}
+                  title={isAvail ? "Mark unavailable" : "Mark available"}
+                  style={{ width: 28, height: 16, borderRadius: 8, background: isAvail ? "var(--sage)" : "var(--cream-darker)", border: `1px solid ${isAvail ? "var(--sage)" : "var(--border)"}`, position: "relative", cursor: "pointer", flexShrink: 0, transition: "background 0.2s" }}>
+                  <div style={{ position: "absolute", top: 2, left: isAvail ? 13 : 2, width: 10, height: 10, borderRadius: "50%", background: "white", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
                 </div>
               </div>
             );
@@ -2879,82 +2115,9 @@ function Staff() {
   );
 }
 
-function CustomerProfileModal({ customer, onClose }) {
-  const CANCEL_REASONS = ["Customer Cancelled","Weather","Operator Cancelled","No Show","Payment Failed","Other"];
-  const bookingHistory = DATA.bookings.filter(b => b.name === customer.name);
-  const totalSpent = bookingHistory.reduce((s, b) => s + b.amount, 0);
-  const waiver = DATA.waivers.find(w => w.name === customer.name);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.2s ease" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 580, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(26,23,20,0.2)", animation: "slideUp 0.2s cubic-bezier(.4,0,.2,1)" }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "22px 24px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
-          <div className="avatar" style={{ width: 48, height: 48, borderRadius: 14, fontSize: 16, background: `hsl(${customer.hue},45%,88%)`, color: `hsl(${customer.hue},50%,35%)` }}>{customer.initials}</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, color: "var(--ink)" }}>{customer.name}</div>
-            <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>Customer · {bookingHistory.length} booking{bookingHistory.length !== 1 ? "s" : ""}</div>
-          </div>
-          <button onClick={onClose} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 18, lineHeight: 1 }}>×</button>
-        </div>
-
-        <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px" }}>
-          {/* Contact + stats */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-            {[
-              { label: "Total Spent", value: `$${totalSpent.toFixed(2)}`, color: "var(--sage)" },
-              { label: "Waiver Status", value: waiver ? "Signed" : "Not Signed", color: waiver ? "var(--sage)" : "var(--rose)" },
-              { label: "Email", value: `${customer.name.split(" ")[0].toLowerCase()}@email.com` },
-              { label: "Phone", value: "+1 (555) 000-0000" },
-            ].map(item => (
-              <div key={item.label} style={{ background: "var(--cream)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "10px 14px" }}>
-                <div style={{ fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)", marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: item.color || "var(--ink)" }}>{item.value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Booking history */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Booking History</div>
-            {bookingHistory.length === 0
-              ? <div style={{ fontSize: 13, color: "var(--ink-4)", padding: "12px 0" }}>No bookings found.</div>
-              : bookingHistory.map(b => (
-                <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{b.activity}</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 2 }}>{b.date} · {b.time}</div>
-                    {b.status === "cancelled" && b.cancelReason && (
-                      <div style={{ fontSize: 10.5, color: "var(--rose)", marginTop: 2 }}>{b.cancelReason}</div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>${b.amount.toFixed(2)}</div>
-                    <Badge status={b.status} />
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-
-          {/* Notes */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Internal Notes</div>
-            <textarea placeholder="Add a note about this customer…" style={{ width: "100%", minHeight: 72, background: "var(--cream)", border: "1.5px solid var(--border)", borderRadius: 9, padding: "10px 12px", fontSize: 13, color: "var(--ink)", fontFamily: "var(--font-body)", resize: "vertical", outline: "none", boxSizing: "border-box" }}
-              onFocus={e => { e.target.style.borderColor = "var(--sage)"; e.target.style.boxShadow = "0 0 0 3px rgba(74,124,111,0.1)"; }}
-              onBlur={e => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Customers() {
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
   return (
     <div>
-      {selectedCustomer && <CustomerProfileModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />}
       <div className="page-header">
         <div><div className="page-title">Customers</div><div className="page-sub">22 registered customers</div></div>
         <button className="btn-primary"><I n="plus" s={14} /> Add Customer</button>
@@ -2976,12 +2139,7 @@ function Customers() {
                   <td><div className="amount-cell">${(b.amount * (Math.floor(Math.random() * 3) + 1)).toFixed(2)}</div></td>
                   <td><div className="date-cell"><div className="date">{b.activity.substring(0, 22)}</div><div className="time">{b.date}</div></div></td>
                   <td><Badge status="confirmed" /></td>
-                  <td>
-                    <div className="actions-cell">
-                      <div className="tbl-btn" onClick={() => setSelectedCustomer(b)} style={{ cursor: "pointer" }}><I n="eye" s={13} /></div>
-                      <div className="tbl-btn"><I n="edit" s={13} /></div>
-                    </div>
-                  </td>
+                  <td><div className="actions-cell"><div className="tbl-btn"><I n="eye" s={13} /></div><div className="tbl-btn"><I n="edit" s={13} /></div></div></td>
                 </tr>
               ))}
             </tbody>
@@ -3386,519 +2544,28 @@ function TaxReport() {
   );
 }
 
-// ─── ANALYTICS OVERVIEW ──────────────────────────────────────────────────────
-function AnalyticsOverview() {
-  const summaryMetrics = [
-    { label: "Total Revenue", value: "$18,420", change: "+14.2%", up: true, spark: [9,12,8,15,11,17,13,18,16,20,19,22] },
-    { label: "Bookings This Month", value: "47", change: "+8.5%", up: true, spark: [4,7,3,11,13,12,9,8,6,10,12,14] },
-    { label: "Cancellation Rate", value: "2.1%", change: "−0.8%", up: true, spark: [4,3.5,4,3,3.2,2.8,2.5,2.4,2.2,2.1,2.0,2.1] },
-    { label: "Top Channel", value: "Google CPC", change: "40% share", up: true, spark: [] },
-  ];
-
-  const activityBreakdown = [
-    { name: "Buggy + Jet Ski + Aqua Karts", bookings: 19, revenue: 6090, color: "#B85C5C" },
-    { name: "Jet Ski + Aqua Kart", bookings: 22, revenue: 2838, color: "#7B5EA7" },
-    { name: "Aqua Splash Pack", bookings: 12, revenue: 2376, color: "#4A7C6F" },
-    { name: "Buggy & Jet Ski", bookings: 15, revenue: 1935, color: "#C4772A" },
-    { name: "Aqua Kart + Buggy", bookings: 8, revenue: 1560, color: "#3B6FA0" },
-  ];
-  const maxRev = Math.max(...activityBreakdown.map(a => a.revenue));
-
-  const channelData = [
-    { source: "Google CPC", bookings: 4, pct: 40 },
-    { source: "Facebook / Instagram", bookings: 3, pct: 30 },
-    { source: "Direct / Organic", bookings: 2, pct: 20 },
-    { source: "TripAdvisor", bookings: 1, pct: 10 },
-  ];
-
-  return (
-    <div>
-      <div className="page-header">
-        <div>
-          <div className="page-title">Analytics Overview</div>
-          <div className="page-sub">Insights & recommendations · March 2026</div>
-        </div>
-        <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-      </div>
-
-      {/* Summary KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 28 }}>
-        {summaryMetrics.map((m, i) => (
-          <div key={m.label} className="card stat-card" style={{ padding: "16px 18px", position: "relative", overflow: "hidden" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-4)", marginBottom: 8 }}>{m.label}</div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>{m.value}</div>
-            <div style={{ fontSize: 11.5, color: m.up ? "var(--sage)" : "var(--rose)", fontWeight: 600 }}>{m.change}</div>
-            {m.spark.length > 0 && (
-              <div style={{ position: "absolute", bottom: 8, right: 10, opacity: 0.35 }}>
-                <Sparkline data={m.spark} color="var(--ink)" h={28} w={60} />
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Two column: activity breakdown + channel mix */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 28 }}>
-        {/* Activity Revenue Breakdown */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Revenue by Activity</div></div>
-          <div className="card-body">
-            {activityBreakdown.map(a => (
-              <div key={a.name} style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--ink-2)" }}>{a.name}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>${a.revenue.toLocaleString()}</span>
-                </div>
-                <div style={{ height: 6, background: "var(--cream-darker)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${(a.revenue / maxRev) * 100}%`, background: a.color, borderRadius: 3, transition: "width 0.6s ease" }} />
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--ink-4)", marginTop: 3 }}>{a.bookings} bookings</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Channel Mix */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Booking Source Mix</div></div>
-          <div className="card-body">
-            {channelData.map((c, i) => {
-              const colors = ["#3B6FA0","#4A7C6F","#C4772A","#7B5EA7"];
-              return (
-                <div key={c.source} style={{ marginBottom: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: colors[i], flexShrink: 0 }} />
-                      <span style={{ fontSize: 12.5, fontWeight: 500, color: "var(--ink-2)" }}>{c.source}</span>
-                    </div>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{c.pct}%</span>
-                  </div>
-                  <div style={{ height: 6, background: "var(--cream-darker)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${c.pct}%`, background: colors[i], borderRadius: 3 }} />
-                  </div>
-                  <div style={{ fontSize: 10.5, color: "var(--ink-4)", marginTop: 3 }}>{c.bookings} bookings tracked</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-const REPORT_BOOKINGS = [
-  { id: "BK-1037", customer: "Jaeda Ray", activity: "Jet Ski + Aqua Kart", date: "Mar 13, 2026", created: "Feb 28, 2026", confirmed: "Mar 1, 2026", cancelled: "—", tickets: 1, total: 122.55, status: "pending" },
-  { id: "BK-1035", customer: "Ce'Asia Williams", activity: "Jet Ski + Aqua Kart", date: "Mar 13, 2026", created: "Feb 27, 2026", confirmed: "Mar 2, 2026", cancelled: "—", tickets: 1, total: 122.55, status: "pending" },
-  { id: "BK-1034", customer: "Tremishea Brady", activity: "Jet Ski + Aqua Kart", date: "Mar 13, 2026", created: "Feb 25, 2026", confirmed: "Feb 25, 2026", cancelled: "—", tickets: 1, total: 129.00, status: "confirmed" },
-  { id: "BK-1031", customer: "Zakaria Mohamad", activity: "Buggy + Jet Ski + Aqua Karts", date: "Mar 23, 2026", created: "Feb 20, 2026", confirmed: "Feb 22, 2026", cancelled: "—", tickets: 2, total: 338.00, status: "pending" },
-  { id: "BK-1030", customer: "Jose Fuentes", activity: "Buggy + Jet Ski + Aqua Karts", date: "Jun 26, 2026", created: "Feb 18, 2026", confirmed: "Feb 19, 2026", cancelled: "—", tickets: 1, total: 160.55, status: "confirmed" },
-  { id: "BK-1029", customer: "Andy Pena", activity: "Buggy + Jet Ski + Aqua Karts", date: "Jun 26, 2026", created: "Feb 18, 2026", confirmed: "Feb 20, 2026", cancelled: "—", tickets: 1, total: 160.55, status: "confirmed" },
-  { id: "BK-1015", customer: "Danial Gourlie", activity: "Buggy & Jet Ski", date: "Mar 3, 2026", created: "Feb 10, 2026", confirmed: "Feb 10, 2026", cancelled: "—", tickets: 1, total: 129.00, status: "confirmed" },
-  { id: "BK-1001", customer: "Jackson Moore", activity: "Buggy + Jet Ski + Aqua Karts", date: "Mar 9, 2026", created: "Feb 4, 2026", confirmed: "Feb 5, 2026", cancelled: "—", tickets: 4, total: 608.40, status: "confirmed" },
-  { id: "BK-993", customer: "Jonathan Rivera", activity: "Aqua Splash Pack", date: "Feb 25, 2026", created: "Jan 30, 2026", confirmed: "Jan 31, 2026", cancelled: "—", tickets: 2, total: 198.00, status: "confirmed" },
-  { id: "BK-992", customer: "Sarah Chen", activity: "Buggy & Jet Ski", date: "Feb 26, 2026", created: "Jan 28, 2026", confirmed: "Jan 29, 2026", cancelled: "Feb 24, 2026", tickets: 3, total: 387.00, status: "cancelled", cancelReason: "Customer Cancelled" },
-];
-
-const CANCEL_REASONS = ["Customer Cancelled", "Weather", "Operator Cancelled", "No Show", "Payment Failed", "Other"];
-
-function BookingReport() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [bookings, setBookings] = useState(REPORT_BOOKINGS.map(b => ({ ...b })));
-  const [editingId, setEditingId] = useState(null);
-  const [pendingStatus, setPendingStatus] = useState(null);
-  const [pendingReason, setPendingReason] = useState("");
-  const [detailId, setDetailId] = useState(null);
-
-  const filtered = bookings.filter(b =>
-    (statusFilter === "all" || b.status === statusFilter) &&
-    (b.customer.toLowerCase().includes(search.toLowerCase()) || b.activity.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const startEdit = (b) => {
-    setEditingId(b.id);
-    setPendingStatus(b.status);
-    setPendingReason(b.cancelReason || "");
-  };
-
-  const commitEdit = (id) => {
-    setBookings(bs => bs.map(b => b.id === id ? {
-      ...b,
-      status: pendingStatus,
-      cancelReason: pendingStatus === "cancelled" ? pendingReason : "",
-      cancelled: pendingStatus === "cancelled" ? "Mar 9, 2026" : "—",
-      confirmed: pendingStatus === "confirmed" ? b.confirmed || "Mar 9, 2026" : b.confirmed,
-    } : b));
-    setEditingId(null);
-  };
-
-  const detailBooking = bookings.find(b => b.id === detailId);
-
-  return (
-    <div>
-      {/* Detail Modal */}
-      {detailBooking && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(26,23,20,0.45)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setDetailId(null)}>
-          <div style={{ background: "white", borderRadius: "var(--radius-lg)", width: 480, maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(26,23,20,0.2)" }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>{detailBooking.id}</div>
-                <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 2 }}>{detailBooking.activity} · {detailBooking.date}</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Badge status={detailBooking.status} />
-                <button onClick={() => setDetailId(null)} style={{ background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 8, width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontSize: 17 }}>×</button>
-              </div>
-            </div>
-            <div style={{ overflowY: "auto", padding: "18px 22px" }}>
-              {[
-                { label: "Customer", value: detailBooking.customer },
-                { label: "Tickets", value: detailBooking.tickets },
-                { label: "Total Price", value: `$${detailBooking.total.toFixed(2)}` },
-                { label: "Created At", value: detailBooking.created },
-                { label: "Confirmed At", value: detailBooking.confirmed },
-                { label: "Cancelled At", value: detailBooking.cancelled },
-              ].map(row => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: 12, color: "var(--ink-4)" }}>{row.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>{row.value}</span>
-                </div>
-              ))}
-              {detailBooking.status === "cancelled" && detailBooking.cancelReason && (
-                <div style={{ marginTop: 14, background: "var(--rose-bg)", border: "1px solid rgba(184,92,92,0.15)", borderRadius: 9, padding: "10px 14px" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--rose)", marginBottom: 3 }}>Cancellation Reason</div>
-                  <div style={{ fontSize: 13, color: "var(--rose)" }}>{detailBooking.cancelReason}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="page-header">
-        <div><div className="page-title">Booking Report</div><div className="page-sub">{bookings.length} total bookings</div></div>
-        <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div className="filter-tabs">
-          {["all","confirmed","pending","cancelled"].map(t => (
-            <button key={t} className={`filter-tab ${statusFilter === t ? "active" : ""}`} onClick={() => setStatusFilter(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="search-bar" style={{ width: 220 }}>
-          <I n="search" s={14} /><input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-      <div className="card">
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Booking ID</th><th>Customer</th><th>Activity</th><th>Date</th><th>Created At</th><th>Confirmed At</th><th>Cancelled At</th><th>Tickets</th><th>Total Price</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map(b => (
-                <tr key={b.id}>
-                  <td><span className="booking-id" style={{ cursor: "pointer" }} onClick={() => setDetailId(b.id)}>{b.id}</span></td>
-                  <td><span className="customer-name">{b.customer}</span></td>
-                  <td><div className="activity-name">{b.activity}</div></td>
-                  <td><div className="date-cell"><div className="date">{b.date}</div></div></td>
-                  <td><div className="date-cell"><div className="date">{b.created}</div></div></td>
-                  <td><div className="date-cell"><div className="date">{b.confirmed}</div></div></td>
-                  <td><div className="date-cell"><div className="date" style={{ color: b.cancelled !== "—" ? "var(--rose)" : "var(--ink-5)" }}>{b.cancelled}</div></div></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{b.tickets}</span></td>
-                  <td><div className="amount-cell">${b.total.toFixed(2)}</div></td>
-                  <td>
-                    {editingId === b.id ? (
-                      <div style={{ minWidth: 160 }}>
-                        <select value={pendingStatus} onChange={e => { setPendingStatus(e.target.value); if (e.target.value !== "cancelled") setPendingReason(""); }}
-                          style={{ background: "white", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", fontSize: 12, fontFamily: "var(--font-body)", marginBottom: 4, width: "100%" }}>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="pending">Pending</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                        {pendingStatus === "cancelled" && (
-                          <select value={pendingReason} onChange={e => setPendingReason(e.target.value)}
-                            style={{ background: "white", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", fontSize: 11, fontFamily: "var(--font-body)", marginBottom: 4, width: "100%", color: pendingReason ? "var(--rose)" : "var(--ink-4)" }}>
-                            <option value="">Select reason…</option>
-                            {CANCEL_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-                          </select>
-                        )}
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button onClick={() => commitEdit(b.id)} style={{ flex: 1, background: "var(--ink)", color: "white", border: "none", borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-body)" }}>Save</button>
-                          <button onClick={() => setEditingId(null)} style={{ flex: 1, background: "var(--cream-dark)", border: "1px solid var(--border)", borderRadius: 5, padding: "3px 8px", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-body)" }}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <Badge status={b.status} />
-                        {b.status === "cancelled" && b.cancelReason && <div style={{ fontSize: 10.5, color: "var(--rose)", marginTop: 3 }}>{b.cancelReason}</div>}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <div className="actions-cell">
-                      <div className="tbl-btn" style={{ cursor: "pointer" }} onClick={() => setDetailId(b.id)}><I n="eye" s={13} /></div>
-                      <div className="tbl-btn" style={{ cursor: "pointer" }} onClick={() => startEdit(b)}><I n="edit" s={13} /></div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="empty-state"><div className="empty-icon"><I n="file" s={22} /></div><div className="empty-title">No bookings found</div><div className="empty-sub">Try adjusting your filters.</div></div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const REPORT_TRANSACTIONS = [
-  { id: "TXN-4421", bookingId: "BK-1001", gatewayId: "pi_3QeM7k2eZvKYlo2C", status: "succeeded", amount: 608.40, date: "Feb 5, 2026", method: "Visa ···6411" },
-  { id: "TXN-4420", bookingId: "BK-993", gatewayId: "pi_3Qd9p12eZvKYlo2C", status: "succeeded", amount: 198.00, date: "Jan 31, 2026", method: "Mastercard ···2288" },
-  { id: "TXN-4419", bookingId: "BK-992", gatewayId: "pi_3Qc8m02eZvKYlo2C", status: "refunded", amount: -387.00, date: "Feb 24, 2026", method: "Visa ···9912" },
-  { id: "TXN-4418", bookingId: "BK-1015", gatewayId: "pi_3Qa2n12eZvKYlo2C", status: "succeeded", amount: 129.00, date: "Feb 10, 2026", method: "Amex ···3045" },
-  { id: "TXN-4417", bookingId: "BK-1029", gatewayId: "pi_3Q9L2z2eZvKYlo2C", status: "succeeded", amount: 160.55, date: "Feb 20, 2026", method: "Visa ···7731" },
-  { id: "TXN-4416", bookingId: "BK-1030", gatewayId: "pi_3Q8k112eZvKYlo2C", status: "succeeded", amount: 160.55, date: "Feb 19, 2026", method: "Mastercard ···5503" },
-  { id: "TXN-4415", bookingId: "BK-1031", gatewayId: "pi_3Q7j002eZvKYlo2C", status: "succeeded", amount: 169.00, date: "Feb 22, 2026", method: "Visa ···4482" },
-  { id: "TXN-4414", bookingId: "BK-1034", gatewayId: "pi_3Q5a112eZvKYlo2C", status: "succeeded", amount: 129.00, date: "Feb 25, 2026", method: "Mastercard ···6614" },
-  { id: "TXN-4413", bookingId: "BK-1035", gatewayId: "pi_3Q4b212eZvKYlo2C", status: "pending", amount: 122.55, date: "Mar 2, 2026", method: "Visa ···8832" },
-  { id: "TXN-4412", bookingId: "BK-1037", gatewayId: "pi_3Q3c312eZvKYlo2C", status: "pending", amount: 122.55, date: "Mar 1, 2026", method: "Mastercard ···1190" },
-];
-
-function TransactionReport() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const statusColor = { succeeded: "var(--sage)", refunded: "var(--rose)", pending: "var(--amber)", failed: "var(--rose)" };
-  const filtered = REPORT_TRANSACTIONS.filter(t =>
-    (statusFilter === "all" || t.status === statusFilter) &&
-    (t.id.toLowerCase().includes(search.toLowerCase()) || t.bookingId.toLowerCase().includes(search.toLowerCase()) || t.gatewayId.toLowerCase().includes(search.toLowerCase()))
-  );
-  return (
-    <div>
-      <div className="page-header">
-        <div><div className="page-title">Transaction Report</div><div className="page-sub">{REPORT_TRANSACTIONS.length} transactions</div></div>
-        <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div className="filter-tabs">
-          {["all","succeeded","pending","refunded"].map(t => (
-            <button key={t} className={`filter-tab ${statusFilter === t ? "active" : ""}`} onClick={() => setStatusFilter(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="search-bar" style={{ width: 220 }}>
-          <I n="search" s={14} /><input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-      <div className="card">
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Transaction ID</th><th>Booking ID</th><th>Gateway ID</th><th>Status</th><th>Amount</th><th>Date</th><th>Payment Method</th></tr></thead>
-            <tbody>
-              {filtered.map(t => (
-                <tr key={t.id}>
-                  <td><span className="booking-id">{t.id}</span></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--sky)" }}>{t.bookingId}</span></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>{t.gatewayId}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: t.status === "succeeded" ? "var(--sage-bg)" : t.status === "pending" ? "var(--amber-bg)" : "var(--rose-bg)", color: statusColor[t.status] || "var(--ink-3)", border: `1px solid ${t.status === "succeeded" ? "rgba(74,124,111,0.2)" : t.status === "pending" ? "rgba(196,119,42,0.2)" : "rgba(184,92,92,0.2)"}`, borderRadius: 6, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>{t.status.charAt(0).toUpperCase() + t.status.slice(1)}</span></td>
-                  <td><div className="amount-cell" style={{ color: t.amount < 0 ? "var(--rose)" : undefined }}>{t.amount < 0 ? `-$${Math.abs(t.amount).toFixed(2)}` : `$${t.amount.toFixed(2)}`}</div></td>
-                  <td><div className="date-cell"><div className="date">{t.date}</div></div></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{t.method}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="empty-state"><div className="empty-icon"><I n="money" s={22} /></div><div className="empty-title">No transactions found</div><div className="empty-sub">Try adjusting your filters.</div></div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const REPORT_MANIFEST = [
-  { date: "Mar 9", time: "09:00–11:00", customer: "Jackson Moore", phone: "+1 (305) 555-0192", tickets: 4, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 9", time: "14:00–16:00", customer: "Jose Fuentes", phone: "+1 (786) 555-0134", tickets: 1, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 10", time: "09:00–11:00", customer: "Andy Pena", phone: "+1 (954) 555-0178", tickets: 1, waiver: "missing", balance: "due", transfer: "—" },
-  { date: "Mar 10", time: "09:00–11:00", customer: "Danial Gourlie", phone: "+1 (561) 555-0245", tickets: 1, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 11", time: "10:00–12:00", customer: "Zakaria Mohamad", phone: "+1 (305) 555-0387", tickets: 2, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 11", time: "14:00–18:00", customer: "Jaeda Ray", phone: "+1 (786) 555-0501", tickets: 1, waiver: "missing", balance: "due", transfer: "Hotel pickup" },
-  { date: "Mar 11", time: "14:00–18:00", customer: "Ce'Asia Williams", phone: "+1 (754) 555-0612", tickets: 1, waiver: "signed", balance: "ok", transfer: "Hotel pickup" },
-  { date: "Mar 12", time: "09:00–11:00", customer: "Jonathan Rivera", phone: "+1 (305) 555-0723", tickets: 2, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 13", time: "09:00–11:00", customer: "Tremishea Brady", phone: "+1 (954) 555-0844", tickets: 1, waiver: "signed", balance: "ok", transfer: "—" },
-  { date: "Mar 13", time: "14:00–18:00", customer: "Ce'Asia Williams", phone: "+1 (754) 555-0612", tickets: 1, waiver: "signed", balance: "ok", transfer: "Hotel pickup" },
-];
-
-function ManifestReport() {
-  const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const dates = ["all", ...Array.from(new Set(REPORT_MANIFEST.map(m => m.date)))];
-  const filtered = REPORT_MANIFEST.filter(m =>
-    (dateFilter === "all" || m.date === dateFilter) &&
-    (m.customer.toLowerCase().includes(search.toLowerCase()) || m.phone.includes(search))
-  );
-  return (
-    <div>
-      <div className="page-header">
-        <div><div className="page-title">Manifest Report</div><div className="page-sub">{REPORT_MANIFEST.length} participants</div></div>
-        <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div className="filter-tabs">
-          {dates.map(d => (
-            <button key={d} className={`filter-tab ${dateFilter === d ? "active" : ""}`} onClick={() => setDateFilter(d)}>
-              {d === "all" ? "All Dates" : d}
-            </button>
-          ))}
-        </div>
-        <div className="search-bar" style={{ width: 220 }}>
-          <I n="search" s={14} /><input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-      <div className="card">
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Phone</th><th>Tickets</th><th>Waiver Status</th><th>Balance</th><th>Transfer</th></tr></thead>
-            <tbody>
-              {filtered.map((m, i) => (
-                <tr key={i}>
-                  <td><div className="date-cell"><div className="date">{m.date}</div></div></td>
-                  <td><div className="time" style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{m.time}</div></td>
-                  <td><span className="customer-name">{m.customer}</span></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)" }}>{m.phone}</span></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{m.tickets}</span></td>
-                  <td>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: m.waiver === "signed" ? "var(--sage-bg)" : "var(--rose-bg)", color: m.waiver === "signed" ? "var(--sage)" : "var(--rose)", border: `1px solid ${m.waiver === "signed" ? "rgba(74,124,111,0.2)" : "rgba(184,92,92,0.2)"}`, borderRadius: 6, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>
-                      {m.waiver === "signed" ? "Signed" : "Missing"}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: m.balance === "ok" ? "var(--sage-bg)" : "var(--amber-bg)", color: m.balance === "ok" ? "var(--sage)" : "var(--amber)", border: `1px solid ${m.balance === "ok" ? "rgba(74,124,111,0.2)" : "rgba(196,119,42,0.2)"}`, borderRadius: 6, padding: "2px 8px", fontSize: 11.5, fontWeight: 600 }}>
-                      {m.balance === "ok" ? "Paid" : "Due"}
-                    </span>
-                  </td>
-                  <td><span style={{ fontSize: 12, color: m.transfer === "—" ? "var(--ink-5)" : "var(--ink-2)" }}>{m.transfer}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="empty-state"><div className="empty-icon"><I n="users" s={22} /></div><div className="empty-title">No entries found</div><div className="empty-sub">Try adjusting your filters.</div></div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const REPORT_MARKETING = [
-  { id: "BK-1001", created: "Feb 4, 2026", status: "confirmed", activity: "Buggy + Jet Ski + Aqua Karts", paid: 608.40, pending: 0, source: "google", medium: "cpc", campaign: "punta-cana-summer", term: "jet ski tours", content: "ad-v2" },
-  { id: "BK-993", created: "Jan 30, 2026", status: "confirmed", activity: "Aqua Splash Pack", paid: 198.00, pending: 0, source: "facebook", medium: "social", campaign: "aqua-experiences", term: "", content: "carousel-1" },
-  { id: "BK-992", created: "Jan 28, 2026", status: "cancelled", activity: "Buggy & Jet Ski", paid: 0, pending: 387.00, source: "google", medium: "cpc", campaign: "punta-cana-summer", term: "buggy jet ski", content: "ad-v1" },
-  { id: "BK-1015", created: "Feb 10, 2026", status: "confirmed", activity: "Buggy & Jet Ski", paid: 129.00, pending: 0, source: "direct", medium: "organic", campaign: "", term: "", content: "" },
-  { id: "BK-1029", created: "Feb 18, 2026", status: "confirmed", activity: "Buggy + Jet Ski + Aqua Karts", paid: 160.55, pending: 0, source: "instagram", medium: "social", campaign: "spring-launch", term: "", content: "reel-3" },
-  { id: "BK-1030", created: "Feb 18, 2026", status: "confirmed", activity: "Buggy + Jet Ski + Aqua Karts", paid: 160.55, pending: 0, source: "instagram", medium: "social", campaign: "spring-launch", term: "", content: "reel-3" },
-  { id: "BK-1031", created: "Feb 20, 2026", status: "pending", activity: "Buggy + Jet Ski + Aqua Karts", paid: 169.00, pending: 169.00, source: "google", medium: "cpc", campaign: "punta-cana-summer", term: "aqua karts", content: "ad-v3" },
-  { id: "BK-1034", created: "Feb 25, 2026", status: "confirmed", activity: "Jet Ski + Aqua Kart", paid: 129.00, pending: 0, source: "tripadvisor", medium: "referral", campaign: "", term: "", content: "" },
-  { id: "BK-1035", created: "Feb 27, 2026", status: "pending", activity: "Jet Ski + Aqua Kart", paid: 0, pending: 122.55, source: "direct", medium: "organic", campaign: "", term: "", content: "" },
-  { id: "BK-1037", created: "Feb 28, 2026", status: "pending", activity: "Jet Ski + Aqua Kart", paid: 0, pending: 122.55, source: "facebook", medium: "social", campaign: "aqua-experiences", term: "", content: "story-2" },
-];
-
-function MarketingReport() {
-  const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("all");
-  const sources = ["all", ...Array.from(new Set(REPORT_MARKETING.map(m => m.source)))];
-  const filtered = REPORT_MARKETING.filter(m =>
-    (sourceFilter === "all" || m.source === sourceFilter) &&
-    (m.id.toLowerCase().includes(search.toLowerCase()) || m.activity.toLowerCase().includes(search.toLowerCase()) || m.campaign.toLowerCase().includes(search.toLowerCase()))
-  );
-  return (
-    <div>
-      <div className="page-header">
-        <div><div className="page-title">Marketing Report</div><div className="page-sub">{REPORT_MARKETING.length} tracked bookings</div></div>
-        <button className="btn-secondary"><I n="file" s={14} /> Export</button>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div className="filter-tabs">
-          {sources.map(s => (
-            <button key={s} className={`filter-tab ${sourceFilter === s ? "active" : ""}`} onClick={() => setSourceFilter(s)}>
-              {s === "all" ? "All Sources" : s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
-          ))}
-        </div>
-        <div className="search-bar" style={{ width: 220 }}>
-          <I n="search" s={14} /><input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-      <div className="card">
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Booking ID</th><th>Created Date</th><th>Booking Status</th><th>Activity</th><th>Total Paid</th><th>Total Pending</th><th>Source</th><th>Medium</th><th>Campaign</th><th>Term</th><th>Content</th></tr></thead>
-            <tbody>
-              {filtered.map(m => (
-                <tr key={m.id}>
-                  <td><span className="booking-id">{m.id}</span></td>
-                  <td><div className="date-cell"><div className="date">{m.created}</div></div></td>
-                  <td><Badge status={m.status} /></td>
-                  <td><div className="activity-name">{m.activity}</div></td>
-                  <td><div className="amount-cell">{m.paid > 0 ? `$${m.paid.toFixed(2)}` : <span style={{ color: "var(--ink-5)" }}>—</span>}</div></td>
-                  <td><div className="amount-cell" style={{ color: m.pending > 0 ? "var(--amber)" : undefined }}>{m.pending > 0 ? `$${m.pending.toFixed(2)}` : <span style={{ color: "var(--ink-5)" }}>—</span>}</div></td>
-                  <td><span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 5, padding: "2px 6px" }}>{m.source}</span></td>
-                  <td><span style={{ fontSize: 12, color: "var(--ink-3)" }}>{m.medium || <span style={{ color: "var(--ink-5)" }}>—</span>}</span></td>
-                  <td><span style={{ fontSize: 12, color: m.campaign ? "var(--ink-2)" : "var(--ink-5)" }}>{m.campaign || "—"}</span></td>
-                  <td><span style={{ fontSize: 12, color: m.term ? "var(--ink-2)" : "var(--ink-5)" }}>{m.term || "—"}</span></td>
-                  <td><span style={{ fontSize: 12, color: m.content ? "var(--ink-2)" : "var(--ink-5)" }}>{m.content || "—"}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="empty-state"><div className="empty-icon"><I n="bar" s={22} /></div><div className="empty-title">No data found</div><div className="empty-sub">Try adjusting your filters.</div></div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── NAV CONFIG ──────────────────────────────────────────────────────────────
+// Items with `children` render as collapsible dropdown groups in sidebar
 const NAV = [
-  { id: "dashboard",          label: "Dashboard",  icon: "grid",   section: "Operations" },
-  { id: "bookings",           label: "Bookings",   icon: "book",   section: "Operations", badge: 2 },
-  { id: "activities",         label: "Activities", icon: "zap",    section: "Manage" },
-  { id: "resources",          label: "Resources",  icon: "box",    section: "Manage" },
-  { id: "staff",              label: "Staff",      icon: "person", section: "Manage" },
-  { id: "customers",          label: "Customers",  icon: "users",  section: "Customers" },
-  { id: "waivers",            label: "Waivers",    icon: "shield", section: "Customers", badge: 1 },
-  { id: "promotions",         label: "Promotions", icon: "tag",    section: "Marketing" },
+  { id: "dashboard", label: "Dashboard", icon: "grid", section: "Operations" },
+  { id: "bookings", label: "Bookings", icon: "book", section: "Operations", badge: 2 },
+  { id: "calendar", label: "Calendar", icon: "cal", section: "Operations" },
+  { id: "activities", label: "Activities", icon: "zap", section: "Manage" },
+  { id: "resources", label: "Resources", icon: "box", section: "Manage" },
+  { id: "staff", label: "Staff", icon: "person", section: "Manage" },
+  { id: "customers", label: "Customers", icon: "users", section: "Marketing" },
+  { id: "promotions", label: "Promotions", icon: "tag", section: "Marketing" },
+  { id: "waivers", label: "Waivers", icon: "shield", section: null, badge: 1 },
   {
     id: "financials", label: "Financials", icon: "money", section: "Finance",
     children: [
-      { id: "fin-overview",   label: "Overview" },
+      { id: "fin-overview", label: "Overview" },
       { id: "fin-statements", label: "Statements" },
-      { id: "fin-tax",        label: "Tax Report" },
+      { id: "fin-tax", label: "Tax Report" },
     ]
   },
-  {
-    id: "analytics", label: "Analytics", icon: "bar", section: "Analytics",
-    children: [
-      { id: "analytics-overview",  label: "Overview" },
-      { id: "report-transaction",  label: "Transaction Report" },
-      { id: "report-manifest",     label: "Manifest Report" },
-      { id: "report-marketing",    label: "Marketing Report" },
-    ]
-  },
-  { id: "calendar",  label: "Calendar", icon: "cal",      section: "Operations" },
-  { id: "settings",  label: "Settings", icon: "settings", section: "System" },
+  { id: "settings", label: "Settings", icon: "settings", section: null },
 ];
-
-// Re-order so Calendar appears under Operations (after Bookings)
-const NAV_ORDERED = (() => {
-  const calItem = NAV.find(n => n.id === "calendar");
-  const rest = NAV.filter(n => n.id !== "calendar");
-  const bookingsIdx = rest.findIndex(n => n.id === "bookings");
-  rest.splice(bookingsIdx + 1, 0, calItem);
-  return rest;
-})();
 
 const PAGES = {
   dashboard: Dashboard,
@@ -3913,10 +2580,6 @@ const PAGES = {
   "fin-overview": FinancialsOverview,
   "fin-statements": FinancialStatements,
   "fin-tax": TaxReport,
-  "report-transaction": TransactionReport,
-  "report-manifest": ManifestReport,
-  "report-marketing": MarketingReport,
-  "analytics-overview": AnalyticsOverview,
   settings: Settings,
 };
 
@@ -3924,21 +2587,20 @@ const PAGES = {
 export default function App() {
   const [page, setPage] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState({ financials: false, analytics: false });
-  const [showNewBooking, setShowNewBooking] = useState(false);
+  const [openGroups, setOpenGroups] = useState({ financials: false });
 
   const PageComponent = PAGES[page] || Dashboard;
 
-  // Build grouped sections using the ordered NAV
+  // Build grouped sections (flat items only — groups handled separately)
   const sections = {};
-  NAV_ORDERED.forEach(n => {
+  NAV.forEach(n => {
     const s = n.section || "__end";
     if (!sections[s]) sections[s] = [];
     sections[s].push(n);
   });
 
   // Resolve current page label (could be a child)
-  const allItems = NAV_ORDERED.flatMap(n => n.children ? [n, ...n.children] : [n]);
+  const allItems = NAV.flatMap(n => n.children ? [n, ...n.children] : [n]);
   const currentPage = allItems.find(n => n.id === page);
 
   const isChildActive = (item) => item.children?.some(c => c.id === page);
@@ -3955,7 +2617,6 @@ export default function App() {
     <NavContext.Provider value={setPage}>
     <>
       <style>{css}</style>
-      {showNewBooking && <NewBookingModal onClose={() => setShowNewBooking(false)} />}
       <div className="app">
         {/* ── SIDEBAR ── */}
         <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -4078,7 +2739,7 @@ export default function App() {
                   <button key={t} style={{ background: i === 0 ? "white" : "none", border: i === 0 ? "1px solid var(--border)" : "1px solid transparent", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, color: i === 0 ? "var(--ink)" : "var(--ink-4)", cursor: "pointer", fontFamily: "var(--font-body)", boxShadow: i === 0 ? "var(--shadow-sm)" : "none" }}>{t}</button>
                 ))}
               </div>
-              <button className="btn-sage" style={{ padding: "8px 14px" }} onClick={() => setShowNewBooking(true)}><I n="plus" s={14} /> New Booking</button>
+              <button className="btn-sage" style={{ padding: "8px 14px" }}><I n="plus" s={14} /> New Booking</button>
             </div>
           </div>
 
